@@ -8,6 +8,7 @@
     <title>Class Connect</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="https://picsum.photos/192/192" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -43,12 +44,15 @@
     <script type="importmap">
 {
   "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
-    "firebase/app": "https://aistudiocdn.com/firebase@^12.6.0/app",
-    "firebase/auth": "https://aistudiocdn.com/firebase@^12.6.0/auth",
-    "firebase/firestore": "https://aistudiocdn.com/firebase@^12.6.0/firestore",
-    "firebase/storage": "https://aistudiocdn.com/firebase@^12.6.0/storage"
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js",
+    "firebase/analytics": "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
   }
 }
 </script>
@@ -62,14 +66,13 @@
       import { initializeApp } from "firebase/app";
       import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc, setDoc, getDoc } from "firebase/firestore";
       import { getAuth, signInAnonymously } from "firebase/auth";
-      import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
       // --- Configuration ---
       const firebaseConfig = {
         apiKey: "AIzaSyA2PUTtkpZNqwc5_KD1hOLOUww-vrtpY9c",
         authDomain: "taskmanager-9df11.firebaseapp.com",
         projectId: "taskmanager-9df11",
-        storageBucket: "taskmanager-9df11.appspot.com",
+        storageBucket: "taskmanager-9df11.firebasestorage.app",
         messagingSenderId: "380357639423",
         appId: "1:380357639423:web:25da494ac1f139a48860ca",
         measurementId: "G-NKZQDGDDX1"
@@ -78,13 +81,12 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
       const auth = getAuth(app);
-      const storage = getStorage(app);
 
       // --- Types ---
       interface User {
         name: string;
         userId: string;
-        role: 'admin' | 'manager' | 'student';
+        role: 'admin' | 'student';
         joinedAt: number;
       }
 
@@ -94,10 +96,7 @@
         senderId: string;
         senderName: string;
         timestamp: number;
-        type: 'text' | 'system' | 'image' | 'file';
-        fileUrl?: string;
-        fileName?: string;
-        fileMimeType?: string;
+        type: 'text' | 'system';
       }
 
       // --- Install Button Component ---
@@ -211,17 +210,6 @@
           }
         };
 
-        const toggleUserRole = async (user) => {
-          if (user.role === 'admin') return; 
-          const newRole = user.role === 'manager' ? 'student' : 'manager';
-          try {
-            await setDoc(doc(db, "users", user.userId), { role: newRole }, { merge: true });
-          } catch (error) {
-            console.error("Error updating role:", error);
-            alert("Failed to update role");
-          }
-        };
-
         return (
           <div className="fixed inset-0 z-50 flex justify-end font-sans">
             <div 
@@ -232,24 +220,26 @@
               <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white z-10">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">Admin Controls</h2>
-                  <p className="text-xs text-slate-500 font-medium">Manage members & roles</p>
+                  <p className="text-xs text-slate-500">Manage class members</p>
                 </div>
                 <button 
                   onClick={onClose}
-                  className="p-2 text-slate-400 hover:text-slate-800 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-800 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto bg-slate-50 no-scrollbar">
                 <div className="p-5">
-                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-6">
+                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                      Add Member
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                      </svg>
+                      Register Student
                     </h3>
                     <form onSubmit={handleAddUser} className="space-y-3">
                       <input
@@ -257,98 +247,80 @@
                         placeholder="Student Name"
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
-                        className="w-full px-4 py-3 bg-slate-50 border border-transparent focus:bg-white focus:border-blue-500/20 rounded-xl text-sm outline-none text-slate-800 font-medium placeholder:text-slate-400 transition-all"
+                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 text-slate-800 font-medium placeholder:text-slate-400"
                       />
                       <input
                         type="text"
-                        placeholder="User ID (e.g. john-123)"
+                        placeholder="Assign User ID"
                         value={newUserId}
                         onChange={(e) => setNewUserId(e.target.value)}
-                        className="w-full px-4 py-3 bg-slate-50 border border-transparent focus:bg-white focus:border-blue-500/20 rounded-xl text-sm outline-none text-slate-800 font-medium placeholder:text-slate-400 transition-all"
+                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 text-slate-800 font-medium placeholder:text-slate-400"
                       />
                       <button
                         type="submit"
                         disabled={isAdding || !newName || !newUserId}
-                        className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 disabled:opacity-50 transition-all shadow-lg shadow-blue-500/20"
+                        className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-blue-200"
                       >
                         {isAdding ? 'Adding...' : 'Add Member'}
                       </button>
                     </form>
                   </div>
+                </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-2">Class List</h3>
-                    {loading ? (
-                      <div className="flex justify-center py-10">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {users.map((user) => {
-                           let badgeColor = 'bg-slate-100 text-slate-500';
-                           if (user.role === 'admin') badgeColor = 'bg-purple-100 text-purple-600';
-                           else if (user.role === 'manager') badgeColor = 'bg-amber-100 text-amber-600';
-                           else if (user.role === 'student') badgeColor = 'bg-emerald-100 text-emerald-600';
-
-                           return (
-                          <div key={user.userId} className="bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-md transition-all">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${badgeColor}`}>
-                                  {user.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-bold text-slate-800">{user.name}</p>
-                                  <p className="text-xs text-slate-400 font-mono">{user.userId}</p>
-                                </div>
-                              </div>
-                              {user.role !== 'admin' && (
-                                <button
-                                  onClick={() => initiateDeleteUser(user.userId, user.name)}
-                                  className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              )}
+                <div className="px-5 pb-5 space-y-3">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Class Members</h3>
+                  {loading ? (
+                    <div className="flex justify-center py-10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {users.map((user) => (
+                        <div key={user.userId} className="flex items-center justify-between p-3.5 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="flex items-center min-w-0">
+                            <div className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm ${user.role === 'admin' ? 'bg-gradient-to-br from-purple-500 to-pink-500' : 'bg-gradient-to-br from-blue-400 to-blue-600'}`}>
+                              {user.name.charAt(0).toUpperCase()}
                             </div>
-                            
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                              <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${badgeColor}`}>
-                                {user.role.toUpperCase()}
-                              </span>
-                              
-                              {user.role !== 'admin' && (
-                                <button
-                                  onClick={() => toggleUserRole(user)}
-                                  className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-                                >
-                                  {user.role === 'manager' ? 'Demote to Student' : 'Promote to Manager'}
-                                </button>
-                              )}
+                            <div className="ml-3 overflow-hidden">
+                              <p className="text-sm font-bold text-slate-800 truncate">{user.name}</p>
+                              <p className="text-xs text-slate-400 font-medium truncate">ID: {user.userId}</p>
                             </div>
                           </div>
-                        )})}
-                      </div>
-                    )}
-                    {!loading && users.length === 0 && (
-                      <div className="text-center py-10">
-                        <p className="text-slate-400 text-sm">No members found.</p>
-                      </div>
-                    )}
-                  </div>
+
+                          {user.role !== 'admin' && (
+                            <button
+                              onClick={() => initiateDeleteUser(user.userId, user.name)}
+                              className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                              title="Remove User"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                          {user.role === 'admin' && (
+                            <span className="text-[10px] font-bold bg-purple-100 text-purple-600 px-2 py-1 rounded-md">ADMIN</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!loading && users.length === 0 && (
+                    <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-200">
+                      <p className="text-slate-400 text-sm">No members found.</p>
+                    </div>
+                  )}
                 </div>
               </div>
               
               <div className="p-4 border-t border-slate-100 bg-white">
-                  <p className="text-center text-xs font-semibold text-slate-400">Total Members: {users.length}</p>
+                  <p className="text-center text-xs font-medium text-slate-400">Total Members: {users.length}</p>
               </div>
             </div>
 
             {userToDelete && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in-up">
-                <div className="bg-white rounded-[2rem] shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100 border border-white/50">
+              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in-up">
+                <div className="bg-white rounded-[2rem] shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100 border border-white/20">
                   <div className="flex flex-col items-center text-center">
                     <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-5 animate-pulse">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -362,13 +334,13 @@
                     <div className="flex w-full gap-3">
                       <button
                         onClick={() => setUserToDelete(null)}
-                        className="flex-1 py-3.5 px-4 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 focus:outline-none transition-colors active:scale-95"
+                        className="flex-1 py-3.5 px-4 bg-slate-100 text-slate-700 font-semibold rounded-2xl hover:bg-slate-200 focus:outline-none transition-colors active:scale-95"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={confirmDeleteUser}
-                        className="flex-1 py-3.5 px-4 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 focus:outline-none transition-all active:scale-95"
+                        className="flex-1 py-3.5 px-4 bg-red-500 text-white font-semibold rounded-2xl hover:bg-red-600 shadow-lg shadow-red-200 focus:outline-none transition-all active:scale-95"
                       >
                         Remove
                       </button>
@@ -387,11 +359,7 @@
         const [newMessage, setNewMessage] = useState('');
         const [showAdminPanel, setShowAdminPanel] = useState(false);
         const [messageToDelete, setMessageToDelete] = useState(null);
-        const [isUploading, setIsUploading] = useState(false);
-        const [attachment, setAttachment] = useState(null);
-        
         const messagesEndRef = useRef(null);
-        const fileInputRef = useRef(null);
 
         useEffect(() => {
           const q = query(collection(db, "messages"), orderBy("timestamp", "asc"));
@@ -409,88 +377,27 @@
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, [messages]);
 
-        const handleFileSelect = (e) => {
-          if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            if (file.size > 10 * 1024 * 1024) {
-              alert("File size must be less than 10MB");
-              return;
-            }
-            
-            const isImage = file.type.startsWith('image/');
-            const previewUrl = isImage ? URL.createObjectURL(file) : '';
-            setAttachment({ file, previewUrl, type: isImage ? 'image' : 'file' });
-          }
-        };
-
-        const clearAttachment = () => {
-          if (attachment?.previewUrl) {
-            URL.revokeObjectURL(attachment.previewUrl);
-          }
-          setAttachment(null);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        };
-
         const handleSendMessage = async (e) => {
           e.preventDefault();
-          if ((!newMessage.trim() && !attachment) || isUploading) return;
+          if (!newMessage.trim()) return;
 
-          setIsUploading(true);
           try {
-            let fileUrl = '';
-            let messageType = 'text';
-
-            if (attachment) {
-              const sanitizedName = attachment.file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-              const storageRef = ref(storage, `chat-attachments/${Date.now()}_${sanitizedName}`);
-              
-              try {
-                const snapshot = await uploadBytes(storageRef, attachment.file);
-                fileUrl = await getDownloadURL(snapshot.ref);
-                messageType = attachment.type;
-              } catch (uploadError) {
-                 console.error("Upload failed:", uploadError);
-                 if (uploadError.code === 'storage/retry-limit-exceeded') {
-                   throw new Error("Upload timed out. Please check your connection or try a smaller file.");
-                 } else if (uploadError.code === 'storage/unauthorized') {
-                   throw new Error("Upload permission denied.");
-                 }
-                 throw uploadError;
-              }
-            }
-
             await addDoc(collection(db, "messages"), {
               text: newMessage,
               senderId: currentUser.userId,
               senderName: currentUser.name,
               timestamp: Date.now(),
-              type: messageType,
-              fileUrl: fileUrl || undefined,
-              fileName: attachment ? attachment.file.name : undefined,
-              fileMimeType: attachment ? attachment.file.type : undefined
+              type: 'text'
             });
-            
             setNewMessage('');
-            clearAttachment();
           } catch (error) {
             console.error("Error sending message", error);
-            alert(error.message || "Failed to send message. Please try again.");
-          } finally {
-            setIsUploading(false);
           }
         };
 
-        const initiateDeleteMessage = (messageId, senderId) => {
-          if (currentUser.role === 'admin' || currentUser.role === 'manager') {
-            setMessageToDelete(messageId);
-            return;
-          }
-          if (currentUser.role === 'student' && senderId === currentUser.userId) {
-            setMessageToDelete(messageId);
-            return;
-          }
+        const initiateDeleteMessage = (messageId) => {
+          if (currentUser.role !== 'admin') return;
+          setMessageToDelete(messageId);
         };
 
         const confirmDeleteMessage = async () => {
@@ -507,37 +414,29 @@
           return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         };
 
-        const getRoleBadge = () => {
-          if (currentUser.role === 'admin') return { color: 'bg-purple-600', label: 'Admin' };
-          if (currentUser.role === 'manager') return { color: 'bg-amber-500', label: 'Manager' };
-          return { color: 'bg-emerald-500', label: currentUser.name };
-        };
-
-        const badge = getRoleBadge();
-
         return (
-          <div className="flex flex-col h-full bg-slate-50 relative font-sans">
-            <header className="bg-white/90 backdrop-blur-xl px-5 py-4 border-b border-slate-100 z-20 flex items-center justify-between sticky top-0 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20">
+          <div className="flex flex-col h-full bg-slate-50 relative">
+            <header className="glass-effect px-4 py-3 border-b border-white/50 z-20 flex items-center justify-between sticky top-0 shadow-sm">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md shadow-blue-500/20">
                   CC
                 </div>
                 <div>
-                  <h2 className="font-bold text-slate-800 text-lg leading-none tracking-tight">Classroom</h2>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className={`block w-1.5 h-1.5 rounded-full ${badge.color}`}></span>
-                    <p className="text-xs text-slate-500 font-medium truncate max-w-[120px]">
-                      {badge.label === currentUser.name ? currentUser.name : `${badge.label} (${currentUser.name})`}
+                  <h2 className="font-bold text-slate-800 leading-tight">Class Room</h2>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`block w-2 h-2 rounded-full ${currentUser.role === 'admin' ? 'bg-purple-500' : 'bg-green-500'}`}></span>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {currentUser.role === 'admin' ? 'Administrator' : currentUser.name}
                     </p>
                   </div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 {currentUser.role === 'admin' && (
                   <button
                     onClick={() => setShowAdminPanel(true)}
-                    className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-blue-100"
+                    className="p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors active:scale-95"
                     title="Admin Controls"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -547,7 +446,7 @@
                 )}
                 <button
                   onClick={onLogout}
-                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-red-100"
+                  className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors active:scale-95"
                   title="Logout"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -557,74 +456,34 @@
               </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
-              {messages.map((msg, index) => {
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar bg-[url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')] bg-fixed">
+              {messages.map((msg) => {
                 const isMe = msg.senderId === currentUser.userId;
-                const showSender = !isMe && (index === 0 || messages[index - 1].senderId !== msg.senderId);
-                const canDelete = 
-                  currentUser.role === 'admin' || 
-                  currentUser.role === 'manager' || 
-                  (isMe);
-
                 return (
-                  <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group animate-fade-in-up`}>
-                    {showSender && (
-                      <span className="text-[11px] font-bold text-slate-400 ml-1 mb-1 block">
-                        {msg.senderName}
-                      </span>
-                    )}
-                    
-                    <div className="relative max-w-[85%] sm:max-w-[70%]">
-                      <div 
-                        className={`relative px-4 py-3 shadow-sm text-[15px] leading-relaxed break-words
-                          ${isMe 
-                            ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm' 
-                            : 'bg-white text-slate-700 rounded-2xl rounded-tl-sm border border-slate-100'
-                          }`}
-                      >
-                        {/* Attachment Display */}
-                        {msg.fileUrl && (
-                          <div className="mb-2 -mx-1 -mt-1">
-                            {msg.type === 'image' ? (
-                              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg">
-                                 <img src={msg.fileUrl} alt="attachment" className="max-w-full max-h-64 object-cover w-full rounded-lg" />
-                              </a>
-                            ) : (
-                              <a 
-                                href={msg.fileUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${isMe ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-slate-50 border-slate-100 hover:bg-slate-100'}`}
-                              >
-                                <div className={`p-2 rounded-lg ${isMe ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
-                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                   </svg>
-                                </div>
-                                <div className="overflow-hidden min-w-0">
-                                  <p className="text-sm font-semibold truncate">{msg.fileName || 'Attachment'}</p>
-                                  <p className="text-[10px] opacity-75">{msg.type.toUpperCase()}</p>
-                                </div>
-                              </a>
-                            )}
-                          </div>
-                        )}
-
-                        {msg.text}
-
-                        <div className={`text-[10px] mt-1 font-medium flex justify-end ${isMe ? 'text-blue-100' : 'text-slate-400'}`}>
-                          {formatTime(msg.timestamp)}
-                        </div>
+                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-fade-in-up`}>
+                    <div 
+                      className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-sm relative group transition-all ${
+                        isMe 
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-tr-none shadow-blue-500/20' 
+                          : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'
+                      }`}
+                    >
+                      {!isMe && (
+                        <p className="text-[11px] font-bold text-blue-600 mb-1 tracking-wide">{msg.senderName}</p>
+                      )}
+                      <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+                      <div className={`text-[10px] mt-1.5 text-right font-medium opacity-70`}>
+                        {formatTime(msg.timestamp)}
                       </div>
 
-                      {canDelete && (
+                      {currentUser.role === 'admin' && (
                         <button
-                          onClick={() => initiateDeleteMessage(msg.id, msg.senderId)}
-                          className={`absolute top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm ${isMe ? '-left-8 text-slate-400 hover:text-red-500' : '-right-8 text-slate-400 hover:text-red-500'}`}
+                          onClick={() => initiateDeleteMessage(msg.id)}
+                          className="absolute -top-3 -right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-md z-10 scale-90 hover:scale-110"
                           title="Delete Message"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
                       )}
@@ -635,58 +494,15 @@
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="bg-white p-3 pb-safe border-t border-slate-100 sticky bottom-0 z-20">
-              {attachment && (
-                <div className="flex items-center gap-3 p-3 mb-3 bg-slate-50 rounded-2xl border border-slate-100 animate-fade-in-up">
-                  <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center overflow-hidden border border-slate-200 shadow-sm">
-                    {attachment.type === 'image' ? (
-                       <img src={attachment.previewUrl} alt="Preview" className="h-full w-full object-cover" />
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                     <p className="text-sm font-semibold text-slate-700 truncate">{attachment.file.name}</p>
-                     <p className="text-xs text-slate-500 font-medium">{(attachment.file.size / 1024).toFixed(0)} KB</p>
-                  </div>
-                  <button 
-                    onClick={clearAttachment}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              <form onSubmit={handleSendMessage} className="flex items-end gap-2 max-w-full">
-                 <input
-                   type="file"
-                   ref={fileInputRef}
-                   className="hidden"
-                   onChange={handleFileSelect}
-                 />
-                 <button
-                   type="button"
-                   onClick={() => fileInputRef.current?.click()}
-                   className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors active:scale-95 flex-shrink-0"
-                   title="Attach File"
-                 >
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                   </svg>
-                 </button>
-
-                <div className="flex-1 bg-slate-100 rounded-2xl border-transparent focus-within:border-blue-500/50 focus-within:bg-slate-50 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all border overflow-hidden">
+            <div className="bg-white/90 backdrop-blur-md p-3 pb-safe border-t border-slate-200 sticky bottom-0 z-20">
+              <form onSubmit={handleSendMessage} className="flex items-end space-x-2 max-w-full">
+                <div className="flex-1 bg-slate-100 rounded-[1.5rem] border-transparent focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:bg-white transition-all border overflow-hidden">
                   <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder={attachment ? "Add a caption..." : "Type a message..."}
+                    placeholder="Type a message..."
                     rows={1}
-                    className="w-full bg-transparent px-4 py-3 max-h-32 text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none no-scrollbar text-base"
+                    className="w-full bg-transparent px-5 py-3.5 max-h-32 text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none no-scrollbar text-base"
                     onKeyDown={(e) => {
                       if(e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -697,19 +513,12 @@
                 </div>
                 <button
                   type="submit"
-                  disabled={(!newMessage.trim() && !attachment) || isUploading}
-                  className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed transition-all active:scale-95 flex-shrink-0"
+                  disabled={!newMessage.trim()}
+                  className="p-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full hover:shadow-lg hover:shadow-blue-600/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed transition-all active:scale-95"
                 >
-                   {isUploading ? (
-                     <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                     </svg>
-                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform rotate-90 translate-x-[1px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                   )}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform rotate-90 translate-x-[1px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
                 </button>
               </form>
             </div>
@@ -719,8 +528,8 @@
             )}
 
             {messageToDelete && (
-              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in-up">
-                <div className="bg-white rounded-[2rem] shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100 border border-white/50">
+              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in-up">
+                <div className="bg-white rounded-[2rem] shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100 border border-white/20">
                   <div className="flex flex-col items-center text-center">
                     <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-5 animate-pulse">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -729,18 +538,18 @@
                     </div>
                     <h3 className="text-xl font-bold text-slate-800 mb-2">Delete Message?</h3>
                     <p className="text-sm text-slate-500 mb-8 px-4 leading-relaxed">
-                      Are you sure you want to delete this message? This action cannot be undone.
+                      This action is irreversible. The message will be removed for everyone in the class.
                     </p>
                     <div className="flex w-full gap-3">
                       <button
                         onClick={() => setMessageToDelete(null)}
-                        className="flex-1 py-3.5 px-4 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 focus:outline-none transition-colors active:scale-95"
+                        className="flex-1 py-3.5 px-4 bg-slate-100 text-slate-700 font-semibold rounded-2xl hover:bg-slate-200 focus:outline-none transition-colors active:scale-95"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={confirmDeleteMessage}
-                        className="flex-1 py-3.5 px-4 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 focus:outline-none transition-all active:scale-95"
+                        className="flex-1 py-3.5 px-4 bg-red-500 text-white font-semibold rounded-2xl hover:bg-red-600 shadow-lg shadow-red-200 focus:outline-none transition-all active:scale-95"
                       >
                         Delete
                       </button>
@@ -758,9 +567,11 @@
       const ADMIN_NAME = "Jainesh Seth";
 
       const Login = ({ onLogin }) => {
-        const [userId, setUserId] = useState('');
+        const [userId, setUserId] = useState(''); // Removed auto-filled value
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [error, setError] = useState('');
+
+        // Removed fillAdminCredentials function
 
         const handleSubmit = async (e) => {
           e.preventDefault();
@@ -812,70 +623,81 @@
         };
 
         return (
-          <div className="flex flex-col items-center justify-center h-full w-full px-6 bg-slate-50">
-            <div className="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl border border-slate-100 animate-fade-in-up">
+          <div className="flex flex-col items-center justify-center h-full w-full px-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+            <div className="w-full max-w-sm bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-white/50 animate-fade-in-up">
               <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30 transform rotate-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-3xl rotate-3 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30 transition-transform hover:rotate-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Class Connect</h1>
-                <p className="text-slate-500 text-sm mt-2">Enter your ID to join the classroom</p>
+                <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Class Connect</h1>
+                <p className="text-slate-500 font-medium mt-2">Welcome back!</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <label htmlFor="userId" className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">
-                    Student ID
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label htmlFor="userId" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">
+                    Your User ID
                   </label>
-                  <div className="relative group">
+                  <div className="relative">
                     <input
                       id="userId"
                       type="text"
                       value={userId}
                       onChange={(e) => setUserId(e.target.value)}
-                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 placeholder:text-slate-400"
-                      placeholder="e.g. john-doe-123"
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium text-slate-800 placeholder:text-slate-400"
+                      placeholder="Enter your ID..."
                       required
                     />
+                    <div className="absolute right-4 top-4 text-slate-400 pointer-events-none">
+                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                       </svg>
+                    </div>
                   </div>
                 </div>
 
                 {error && (
-                  <div className="flex items-start gap-3 text-red-600 text-sm bg-red-50 p-4 rounded-xl border border-red-100 animate-fade-in-up">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                  <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-3 rounded-xl border border-red-100 animate-fade-in-up">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     <span>{error}</span>
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-4 bg-blue-600 text-white font-bold text-lg rounded-2xl hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Verifying...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Continue</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                    </>
-                  )}
-                </button>
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg rounded-2xl hover:shadow-lg hover:shadow-blue-600/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Join Class</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
+
+              <div className="mt-8 text-center">
+                {/* Admin Login button has been removed */}
+              </div>
             </div>
-            <p className="mt-8 text-xs text-slate-400 font-medium">© 2024 Class Connect</p>
+            <p className="mt-6 text-xs text-slate-400 font-medium">© 2024 Class Connect App</p>
           </div>
         );
       };
@@ -887,7 +709,7 @@
 
         useEffect(() => {
           const initAuth = async () => {
-            const storedUser = localStorage.getItem('class_chat_user_v6');
+            const storedUser = localStorage.getItem('class_chat_user_v5');
             
             if (storedUser) {
               try {
@@ -901,7 +723,7 @@
                 setUser(parsedUser);
               } catch (e) {
                 console.error("Failed to restore session", e);
-                localStorage.removeItem('class_chat_user_v6');
+                localStorage.removeItem('class_chat_user_v5');
               }
             }
             setLoading(false);
@@ -912,12 +734,12 @@
 
         const handleLogin = (newUser) => {
           setUser(newUser);
-          localStorage.setItem('class_chat_user_v6', JSON.stringify(newUser));
+          localStorage.setItem('class_chat_user_v5', JSON.stringify(newUser));
         };
 
         const handleLogout = () => {
           setUser(null);
-          localStorage.removeItem('class_chat_user_v6');
+          localStorage.removeItem('class_chat_user_v5');
         };
 
         if (loading) {
@@ -943,6 +765,15 @@
       // --- Render ---
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<App />);
+
+      // --- Service Worker Registration ---
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => console.log('SW registered'))
+            .catch(err => console.log('SW failed', err));
+        });
+      }
     </script>
   </body>
 </html>
