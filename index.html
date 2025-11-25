@@ -8,6 +8,7 @@
     <title>Class Connect</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src='https://meet.jit.si/external_api.js'></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
@@ -154,6 +155,69 @@
               Install
             </button>
           </div>
+        );
+      };
+
+      // CallModal Component (Jitsi Meet Integration)
+      const CallModal = ({ roomName, userName, callType, onClose }) => {
+        const jitsiContainerRef = useRef(null);
+
+        useEffect(() => {
+            const loadJitsi = () => {
+                if (!window.JitsiMeetExternalAPI) {
+                    console.error("Jitsi API not loaded");
+                    return;
+                }
+                
+                const domain = 'meet.jit.si';
+                const options = {
+                    roomName: `ClassConnect_${roomName.replace(/\s+/g, '')}`,
+                    width: '100%',
+                    height: '100%',
+                    parentNode: jitsiContainerRef.current,
+                    userInfo: { displayName: userName },
+                    configOverwrite: {
+                        startWithAudioMuted: false,
+                        startWithVideoMuted: callType === 'audio',
+                        prejoinPageEnabled: false
+                    },
+                    interfaceConfigOverwrite: {
+                        TOOLBAR_BUTTONS: [
+                            'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                            'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+                            'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+                            'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
+                            'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
+                        ],
+                        SHOW_JITSI_WATERMARK: false
+                    }
+                };
+                const api = new window.JitsiMeetExternalAPI(domain, options);
+                
+                // Handle call end
+                api.addEventListener('videoConferenceLeft', onClose);
+                api.addEventListener('readyToClose', onClose);
+
+                return api;
+            };
+
+            const api = loadJitsi();
+            return () => api && api.dispose();
+        }, [roomName, userName, callType, onClose]);
+
+        return (
+            <div className="fixed inset-0 z-50 bg-black flex flex-col animate-[fadeIn_0.3s_ease-out]">
+            <div ref={jitsiContainerRef} className="flex-1 w-full h-full" />
+            <button 
+                onClick={onClose}
+                className="absolute top-4 right-4 p-3 bg-red-600/90 text-white rounded-full hover:bg-red-700 z-50 shadow-lg backdrop-blur-sm"
+                title="Close Call"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            </div>
         );
       };
 
@@ -409,6 +473,8 @@
         const [newMessage, setNewMessage] = useState('');
         const [showAdminPanel, setShowAdminPanel] = useState(false);
         const [messageToDelete, setMessageToDelete] = useState(null);
+        const [callActive, setCallActive] = useState(false);
+        const [callType, setCallType] = useState(null); // 'video' | 'audio'
         const messagesEndRef = useRef(null);
 
         useEffect(() => {
@@ -438,7 +504,7 @@
               senderName: currentUser.name,
               timestamp: Date.now(),
               type: 'text',
-              reactions: {} // Initialize with empty reactions
+              reactions: {}
             });
             setNewMessage('');
           } catch (error) {
@@ -458,15 +524,11 @@
               
               let updatedEmojiReactions;
               if (emojiReactions.includes(currentUser.userId)) {
-                // Remove reaction
                 updatedEmojiReactions = emojiReactions.filter(id => id !== currentUser.userId);
               } else {
-                // Add reaction
                 updatedEmojiReactions = [...emojiReactions, currentUser.userId];
               }
               
-              // We use dot notation to update specific map field in Firestore
-              // If the array becomes empty, we could remove the key, but keeping empty array is fine
               await updateDoc(msgRef, {
                 [`reactions.${emoji}`]: updatedEmojiReactions
               });
@@ -488,6 +550,11 @@
 
         const formatTime = (timestamp) => {
           return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+
+        const startCall = (type) => {
+            setCallType(type);
+            setCallActive(true);
         };
 
         const canManage = currentUser.role === 'admin' || currentUser.role === 'manager';
@@ -519,6 +586,26 @@
               </div>
               
               <div className="flex items-center gap-2">
+                {/* Call Buttons */}
+                <button
+                    onClick={() => startCall('audio')}
+                    className="p-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full transition-all active:scale-95"
+                    title="Voice Call"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                </button>
+                <button
+                    onClick={() => startCall('video')}
+                    className="p-2.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full transition-all active:scale-95"
+                    title="Video Call"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                    </svg>
+                </button>
+
                 {canManage && (
                   <button
                     onClick={() => setShowAdminPanel(true)}
@@ -548,7 +635,6 @@
                 const isMe = msg.senderId === currentUser.userId;
                 const canDelete = canManage || isMe;
                 
-                // Process Reactions
                 const reactions = msg.reactions || {};
                 const reactionKeys = Object.keys(reactions).filter(k => reactions[k] && reactions[k].length > 0);
 
@@ -561,7 +647,6 @@
                           : 'items-start flex flex-col'
                       }`}
                     >
-                      {/* Reaction Picker - Shows on Group Hover */}
                       <div className={`absolute -top-8 ${isMe ? 'right-0' : 'left-0'} bg-white shadow-lg rounded-full px-2 py-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-none group-hover:pointer-events-auto border border-slate-100`}>
                           {REACTION_EMOJIS.map(emoji => (
                               <button
@@ -591,7 +676,6 @@
                             {formatTime(msg.timestamp)}
                           </span>
                           
-                          {/* Reaction Display */}
                           {reactionKeys.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                                 {reactionKeys.map(emoji => {
@@ -667,6 +751,16 @@
 
             {showAdminPanel && (
               <AdminPanel currentUser={currentUser} onClose={() => setShowAdminPanel(false)} />
+            )}
+
+            {/* Video Call Modal */}
+            {callActive && (
+                <CallModal 
+                    roomName="MainClassRoom" 
+                    userName={currentUser.name} 
+                    callType={callType}
+                    onClose={() => setCallActive(false)} 
+                />
             )}
 
             {messageToDelete && (
