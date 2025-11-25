@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -55,6 +56,15 @@
         80% { transform: scale(1.1); opacity: 1; }
         100% { transform: scale(1); opacity: 1; }
       }
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+      .animate-shimmer {
+        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+      }
       .pb-safe {
         padding-bottom: env(safe-area-inset-bottom);
       }
@@ -67,6 +77,7 @@
     "firebase/app": "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js",
     "firebase/firestore": "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js",
     "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js",
+    "@google/genai": "https://esm.sh/@google/genai",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/"
@@ -83,6 +94,7 @@
       import { initializeApp } from "firebase/app";
       import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, getDoc } from "firebase/firestore";
       import { getAuth, signInAnonymously } from "firebase/auth";
+      import { GoogleGenAI } from "@google/genai";
 
       // --- CONSTANTS ---
       const ADMIN_ID = "admin@jaineshseth";
@@ -103,6 +115,9 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
       const auth = getAuth(app);
+
+      // --- GEMINI SETUP ---
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
       // --- COMPONENTS ---
 
@@ -414,6 +429,12 @@
         const [newMessage, setNewMessage] = useState('');
         const [showAdminPanel, setShowAdminPanel] = useState(false);
         const [messageToDelete, setMessageToDelete] = useState(null);
+        
+        // Gemini States
+        const [isRewriting, setIsRewriting] = useState(false);
+        const [explanation, setExplanation] = useState(null);
+        const [isExplaining, setIsExplaining] = useState(false);
+
         const messagesEndRef = useRef(null);
 
         useEffect(() => {
@@ -449,6 +470,51 @@
           } catch (error) {
             console.error("Error sending message", error);
           }
+        };
+
+        // --- GEMINI FEATURES ---
+        
+        // 1. Smart Rewrite (Gemini Flash for speed)
+        const handleSmartRewrite = async (e) => {
+          e.preventDefault(); // prevent form submit if button in form
+          if (!newMessage.trim() || isRewriting) return;
+
+          setIsRewriting(true);
+          try {
+            const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: `Rewrite the following text to be more polite, grammatically correct, and clear for a classroom setting. Return ONLY the rewritten text without quotes. Text: "${newMessage}"`
+            });
+            
+            const rewritten = response.text.trim();
+            if (rewritten) {
+              setNewMessage(rewritten);
+            }
+          } catch (err) {
+            console.error("Gemini Rewrite Error:", err);
+            alert("Could not rewrite text. Try again.");
+          } finally {
+            setIsRewriting(false);
+          }
+        };
+
+        // 2. Smart Explain (Gemini Flash for analysis)
+        const handleExplainMessage = async (text) => {
+           setIsExplaining(true);
+           setExplanation({ text: text, content: "Thinking..." });
+           
+           try {
+             const response = await ai.models.generateContent({
+               model: 'gemini-2.5-flash',
+               contents: `Explain the following message simply. If it's a question, answer it briefly. If it's a statement, clarify the context or meaning. Keep it under 50 words. Message: "${text}"`
+             });
+             setExplanation({ text: text, content: response.text.trim() });
+           } catch(err) {
+             console.error("Gemini Explain Error:", err);
+             setExplanation({ text: text, content: "Sorry, I couldn't analyze this message." });
+           } finally {
+             setIsExplaining(false);
+           }
         };
 
         const handleReaction = async (msgId, emoji) => {
@@ -571,7 +637,7 @@
                         <span className="text-[10px] font-bold text-slate-500 ml-2 mb-1">{msg.senderName}</span>
                       )}
                       
-                      {/* Message Bubble Container - Relative for absolute positioning of reactions */}
+                      {/* Message Bubble Container */}
                       <div className="relative">
                         <div className={`px-4 py-2.5 shadow-sm text-[15px] leading-relaxed break-words whitespace-pre-wrap ${
                           isMe
@@ -592,6 +658,17 @@
                                {emoji}
                              </button>
                            ))}
+                           {/* Gemini Explain Button */}
+                           <div className="w-[1px] h-6 bg-slate-200 mx-1 self-center"></div>
+                           <button
+                             onClick={() => handleExplainMessage(msg.text)}
+                             className="w-8 h-8 flex items-center justify-center hover:bg-indigo-50 text-indigo-500 rounded-full transition-transform hover:scale-125 active:scale-95"
+                             title="Ask AI to explain"
+                           >
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                             </svg>
+                           </button>
                         </div>
                       </div>
                       
@@ -645,19 +722,43 @@
             <div className="absolute bottom-0 left-0 right-0 p-3 pb-safe z-20">
                <div className="glass-card rounded-[2rem] p-1.5 pl-4 shadow-xl shadow-indigo-900/5">
                   <form onSubmit={handleSendMessage} className="flex items-end gap-2">
-                      <textarea
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type your message..."
-                        rows={1}
-                        className="flex-1 bg-transparent py-3 max-h-32 text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none no-scrollbar text-base font-medium"
-                        onKeyDown={(e) => {
-                          if(e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage(e);
-                          }
-                        }}
-                      />
+                      <div className="flex-1 relative">
+                        <textarea
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="Type your message..."
+                          rows={1}
+                          className="w-full bg-transparent py-3 pr-10 max-h-32 text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none no-scrollbar text-base font-medium"
+                          onKeyDown={(e) => {
+                            if(e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendMessage(e);
+                            }
+                          }}
+                        />
+                        {/* Magic Rewrite Button */}
+                        <button
+                          type="button"
+                          onClick={handleSmartRewrite}
+                          disabled={!newMessage.trim() || isRewriting}
+                          className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 text-indigo-400 hover:text-indigo-600 disabled:opacity-30 transition-colors"
+                          title="Auto-Fix & Polish with AI"
+                        >
+                          {isRewriting ? (
+                             <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                             </svg>
+                          ) : (
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                               <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 12a1 1 0 112 0 1 1 0 01-2 0zM17 2a1 1 0 011 1v1h1a1 1 0 010 2h-1v1a1 1 0 01-2 0V6h-1a1 1 0 010-2h1V3a1 1 0 011-1zm-3 12a1 1 0 112 0 1 1 0 01-2 0z" clipRule="evenodd" />
+                             </svg>
+                          )}
+                        </button>
+                      </div>
+
                       <button
                         type="submit"
                         disabled={!newMessage.trim()}
@@ -670,6 +771,34 @@
                   </form>
                </div>
             </div>
+
+            {/* AI Explanation Modal */}
+            {explanation && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setExplanation(null)} />
+                <div className="bg-white/95 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl p-6 w-full max-w-sm relative z-10 animate-[popIn_0.3s_cubic-bezier(0.175,0.885,0.32,1.275)]">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-200">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">AI Insight</h3>
+                      <p className="text-slate-800 text-base font-medium leading-relaxed">
+                        {explanation.content}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setExplanation(null)}
+                    className="mt-6 w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors"
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
+            )}
 
             {showAdminPanel && (
               <AdminPanel currentUser={currentUser} onClose={() => setShowAdminPanel(false)} />
